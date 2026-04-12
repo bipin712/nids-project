@@ -1,0 +1,72 @@
+/* ================================================================
+   dashboard.css  —  ShieldNet NIDS
+   Live monitoring dashboard page styles.
+   Extends components.css
+   ================================================================ */
+
+/* ── Capture toggle button ──────────────────────────────────────── */
+.capture-btn {
+  padding: 8px 20px;
+  border-radius: var(--r-sm);
+  font-family: var(--f-display);
+  font-size: .7rem; font-weight: 700; letter-spacing: 1.5px;
+  cursor: pointer; border: 1px solid var(--c-border);
+  color: var(--t-4); background: transparent;
+  transition: all .25s;
+}
+.capture-btn.capturing {
+  border-color: var(--c-green);
+  color: var(--c-green);
+  background: rgba(0,229,122,.07);
+  box-shadow: 0 0 14px rgba(0,229,122,.18);
+}
+.capture-btn.paused {
+  border-color: var(--c-amber);
+  color: var(--c-amber);
+  background: rgba(255,173,0,.07);
+}
+
+/* ── Interface selector ─────────────────────────────────────────── */
+.iface-selector {
+  padding: 8px 12px;
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-sm);
+  color: var(--t-2);
+  font-family: var(--f-mono); font-size: .78rem;
+  outline: none; cursor: pointer;
+  transition: border-color .2s;
+}
+.iface-selector:focus { border-color: var(--c-cyan); }
+
+/* ── Dashboard stat row ─────────────────────────────────────────── */
+.stat-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; }
+
+/* ── Alert table wrapper ────────────────────────────────────────── */
+.alert-table-scroll { overflow-x: auto; overflow-y: auto; max-height: 320px; }
+
+/* ── SHAP panel body ────────────────────────────────────────────── */
+.shap-body { padding: 18px 22px; }
+.shap-wait {
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  min-height: 130px; gap: 10px; text-align: center;
+}
+.shap-wait-icon { font-size: 2.2rem; opacity: .2; }
+.shap-wait-text { font-size: .82rem; color: var(--t-4); }
+
+/* ── Live packet feed container ─────────────────────────────────── */
+.packet-feed-inner { max-height: 290px; overflow-y: auto; }
+
+/* ── System health panel ────────────────────────────────────────── */
+.health-body { padding: 18px 22px 14px; }
+.health-note { font-size: .76rem; color: var(--t-4); padding: 0 22px 16px; }
+
+/* ── Source panel body ──────────────────────────────────────────── */
+.source-empty { padding: 28px 20px; text-align: center; }
+.source-empty-icon { font-size: 2rem; opacity: .18; display: block; margin-bottom: 8px; }
+.source-empty-text { font-size: .80rem; color: var(--t-4); }
+
+/* ── Row-level colour hints on main alert table ─────────────────── */
+.dashboard-table .row-attack td:first-child { border-left: 3px solid var(--c-red); }
+.dashboard-table .row-normal td:first-child { border-left: 3px solid var(--c-green); }

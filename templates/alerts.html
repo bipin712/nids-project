@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+
+{% block title %}Alerts — ShieldNet NIDS{% endblock %}
+{% block page_title %}ALERT MANAGEMENT{% endblock %}
+{% block page_sub %}Review, filter and investigate all detected intrusion events{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/alerts.css') }}">
+{% endblock %}
+
+{% block topbar_actions %}
+<button class="btn btn-ghost" onclick="exportAllAlerts()" style="padding:8px 16px;font-size:.74rem;">
+  ⬇ Export CSV
+</button>
+{% endblock %}
+
+{% block page_content %}
+<div class="page-body">
+
+  <!-- Summary row -->
+  <div class="summary-grid">
+    <div class="stat-card">
+      <div class="top-bar top-cyan"></div>
+      <div class="stat-label">Total Alerts</div>
+      <div class="stat-value text-cyan" id="summary-total">{{ summary.total | default('0') }}</div>
+      <span class="stat-bg-icon">📊</span>
+    </div>
+    <div class="stat-card">
+      <div class="top-bar top-red"></div>
+      <div class="stat-label">High Severity</div>
+      <div class="stat-value text-red" id="summary-high">{{ summary.high | default('0') }}</div>
+      <span class="stat-bg-icon">🔴</span>
+    </div>
+    <div class="stat-card">
+      <div class="top-bar top-amber"></div>
+      <div class="stat-label">Medium Severity</div>
+      <div class="stat-value text-amber" id="summary-medium">{{ summary.medium | default('0') }}</div>
+      <span class="stat-bg-icon">🟡</span>
+    </div>
+    <div class="stat-card">
+      <div class="top-bar top-green"></div>
+      <div class="stat-label">Low Severity</div>
+      <div class="stat-value text-green" id="summary-low">{{ summary.low | default('0') }}</div>
+      <span class="stat-bg-icon">🟢</span>
+    </div>
+    <div class="stat-card">
+      <div class="top-bar top-purple"></div>
+      <div class="stat-label">Unique Sources</div>
+      <div class="stat-value" style="color:var(--c-purple);" id="summary-unique">{{ summary.unique_sources | default('0') }}</div>
+      <span class="stat-bg-icon">🌐</span>
+    </div>
+  </div>
+
+  <!-- Filter bar -->
+  <div class="filter-bar">
+    <button class="chip active" data-filter="all" onclick="filterAlerts('all', this)">All</button>
+    <button class="chip" data-filter="attack" onclick="filterAlerts('attack', this)">🔴 Attacks</button>
+    <button class="chip" data-filter="dos" onclick="filterAlerts('DoS', this)">DoS</button>
+    <button class="chip" data-filter="probe" onclick="filterAlerts('Probe', this)">Probe</button>
+    <button class="chip" data-filter="r2l" onclick="filterAlerts('R2L', this)">R2L</button>
+    <button class="chip" data-filter="u2r" onclick="filterAlerts('U2R', this)">U2R</button>
+    <button class="chip" data-filter="normal" onclick="filterAlerts('Normal', this)">Normal</button>
+
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input type="text" class="search-input" id="search-box" placeholder="Search IP or type..." oninput="applySearchFilter()">
+    </div>
+  </div>
+
+  <!-- Alert table panel -->
+  <div class="panel">
+    <div class="panel-head">
+      <span class="panel-title">Intrusion Alert Log</span>
+      <div class="panel-actions">
+        <span class="badge-live" id="live-indicator" style="display:none;">● LIVE</span>
+        <span class="row-count" id="row-count">{{ alerts | length }} alert{{ 's' if alerts | length != 1 else '' }}</span>
+      </div>
+    </div>
+
+    <!-- Empty state -->
+    {% if not alerts %}
+    <div class="empty-state" id="alerts-empty">
+      <span class="empty-icon">🚨</span>
+      <span class="empty-title">No Alerts Recorded</span>
+      <span class="empty-desc">Start packet capture to begin monitoring. All detected events will be stored here automatically.</span>
+    </div>
+    {% endif %}
+
+    <!-- Table -->
+    <div class="table-wrapper">
+      <table class="data-table" id="main-table">
+        <thead>
+          <tr>
+            <th style="width:40px;">#</th>
+            <th>Timestamp</th>
+            <th>Source IP</th>
+            <th>Dest IP</th>
+            <th>Protocol</th>
+            <th>Attack Type</th>
+            <th>Severity</th>
+            <th>ML Score</th>
+            <th>Rule Fired</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="alert-tbody">
+          {% for alert in alerts %}
+          <tr class="{{ 'row-attack' if alert.is_attack else 'row-normal' }}" 
+              data-type="{{ alert.attack_type }}" 
+              data-src="{{ alert.src_ip }}" 
+              data-id="{{ alert.id }}">
+            <td class="mono-cell" style="color:var(--t-4);">{{ alert.id }}</td>
+            <td class="mono-cell">{{ alert.timestamp }}</td>
+            <td class="mono-cell">{{ alert.src_ip }}</td>
+            <td class="mono-cell" style="color:var(--t-3);">{{ alert.dst_ip }}</td>
+            <td class="mono-cell" style="color:var(--t-3);">{{ alert.protocol }}</td>
+            <td><span class="badge b-{{ alert.attack_type | lower }}">{{ alert.attack_type }}</span></td>
+            <td><span class="badge b-{{ alert.severity | lower }}">{{ alert.severity }}</span></td>
+            <td class="mono-cell {{ 'score-attack' if alert.is_attack else 'score-normal' }}">{{ '%.3f' | format(alert.combined_score) }}</td>
+            <td class="rule-cell" title="{{ alert.rule_fired }}">{{ alert.rule_fired }}</td>
+            <td><button class="btn-detail" onclick="showAlertDetail('{{ alert.id }}')">Detail</button></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<!-- Detail Modal -->
+<div class="modal-backdrop" id="modal" onclick="closeModal(event)">
+  <div class="modal-card" onclick="event.stopPropagation()">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div class="modal-title" id="modal-title">ALERT DETAIL</div>
+    <div class="detail-grid" id="modal-grid"></div>
+    <div class="modal-shap" id="modal-shap"></div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<div id="alerts-data" data-alerts='{{ alerts_json | default([]) | tojson | safe }}' hidden></div>
+<script>
+  // Pass alert data from server to JavaScript
+  var alertData = JSON.parse(document.getElementById('alerts-data').dataset.alerts || '[]');
+</script>
+<script src="{{ url_for('static', filename='js/alerts.js') }}"></script>
+{% endblock %}
