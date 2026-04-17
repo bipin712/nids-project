@@ -1,4 +1,3 @@
-
 from scapy.all import sniff, IP, TCP, UDP, ICMP
 from detector import run_all_rules
 from ml_classifier import classify, get_confidence, is_ready
