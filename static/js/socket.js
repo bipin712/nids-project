@@ -1,6 +1,6 @@
 /* ================================================================
-   socket.js  —  ShieldNet NIDS
-   SocketIO client – connects to Flask-SocketIO backend.
+   socket.js  —  Network Intrusion Detection System
+   WebSocket client – connects to FastAPI backend.
    Emits events that dashboard.js and other pages listen to.
    ================================================================ */
 
@@ -14,91 +14,89 @@ NIDS.socket = null;
 NIDS.connected = false;
 
 NIDS.connectSocket = function () {
-  // io() comes from the Flask-SocketIO CDN script
-  // URL is auto-detected from the page origin
-  if (typeof io === 'undefined') {
-    console.warn('[socket.js] SocketIO not loaded — running in demo mode');
-    NIDS._demoMode = true;
-    return;
-  }
-
-  NIDS.socket = io({
-    transports: ['websocket', 'polling'],
-    reconnection: true,
-    reconnectionAttempts: 10,
-    reconnectionDelay: 2000,
-  });
+  // Determine protocol (ws or wss based on current page protocol)
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const wsUrl = protocol + '//' + window.location.host + '/ws';
+  
+  console.log('[socket.js] Connecting to WebSocket at:', wsUrl);
+  
+  NIDS.socket = new WebSocket(wsUrl);
 
   /* ── Connection lifecycle ──────────────────────────────────────── */
-  NIDS.socket.on('connect', function () {
+  NIDS.socket.onopen = function () {
     NIDS.connected = true;
-    console.log('[NIDS] Socket connected:', NIDS.socket.id);
-    NIDS._emit('nids:connected', { id: NIDS.socket.id });
+    console.log('[NIDS] WebSocket connected');
+    NIDS._emit('nids:connected', { id: 'ws-client' });
     NIDS._updateConnectionUI(true);
-  });
+  };
 
-  NIDS.socket.on('disconnect', function (reason) {
+  NIDS.socket.onclose = function (event) {
     NIDS.connected = false;
-    console.warn('[NIDS] Socket disconnected:', reason);
-    NIDS._emit('nids:disconnected', { reason });
+    console.warn('[NIDS] WebSocket disconnected:', event.code, event.reason);
+    NIDS._emit('nids:disconnected', { reason: event.reason || 'Connection closed' });
     NIDS._updateConnectionUI(false);
-  });
+    
+    // Attempt reconnection after 3 seconds
+    setTimeout(NIDS.connectSocket, 3000);
+  };
 
-  NIDS.socket.on('connect_error', function (err) {
-    console.error('[NIDS] Connection error:', err.message);
-  });
+  NIDS.socket.onerror = function (err) {
+    console.error('[NIDS] WebSocket error:', err);
+    NIDS._emit('nids:error', { message: 'WebSocket connection error' });
+  };
 
-  /* ── Server → Client events ──────────────────────────────────── */
+  NIDS.socket.onmessage = function (event) {
+    try {
+      const message = JSON.parse(event.data);
+      const type = message.type;
+      const data = message.data;
 
-  // New alert from ensemble engine
-  NIDS.socket.on('new_alert', function (data) {
-    // data shape:
-    // { timestamp, src_ip, dst_ip, protocol, is_attack, attack_type,
-    //   severity, combined_score, rule_score, ml_score, ml_class,
-    //   ml_confidence, rule_fired, explanation, packet_count }
-    NIDS._emit('nids:alert', data);
-  });
-
-  // Normal traffic notification (low-priority)
-  NIDS.socket.on('normal_traffic', function (data) {
-    NIDS._emit('nids:normal', data);
-  });
-
-  // System status update from backend
-  NIDS.socket.on('system_status', function (data) {
-    // data: { cpu, memory, packet_rate, model_load, db_size, uptime }
-    NIDS._emit('nids:status', data);
-  });
-
-  // Capture started/stopped confirmation
-  NIDS.socket.on('capture_started', function (data) {
-    NIDS._emit('nids:capture_started', data);
-  });
-  NIDS.socket.on('capture_stopped', function (data) {
-    NIDS._emit('nids:capture_stopped', data);
-  });
+      switch (type) {
+        case 'new_alert':
+          NIDS._emit('nids:alert', data);
+          break;
+        case 'initial_alerts':
+          NIDS._emit('nids:initial_alerts', data);
+          break;
+        case 'stats_update':
+          NIDS._emit('nids:stats', data);
+          break;
+        case 'normal_traffic':
+          NIDS._emit('nids:normal', data);
+          break;
+        case 'capture_started':
+          NIDS._emit('nids:capture_started', data);
+          break;
+        case 'capture_stopped':
+          NIDS._emit('nids:capture_stopped', data);
+          break;
+        default:
+          console.log('[NIDS] Unknown message type:', type);
+      }
+    } catch (e) {
+      console.error('[NIDS] Failed to parse WebSocket message:', e);
+    }
+  };
 };
 
 /* ── Client → Server ──────────────────────────────────────────── */
+NIDS.requestStats = function () {
+  if (NIDS.socket && NIDS.connected && NIDS.socket.readyState === WebSocket.OPEN) {
+    NIDS.socket.send('request_stats');
+  }
+};
+
 NIDS.startCapture = function (iface) {
-  if (NIDS.socket && NIDS.connected) {
-    NIDS.socket.emit('start_capture', { interface: iface || 'auto' });
-  } else if (NIDS._demoMode) {
-    NIDS._emit('nids:capture_started', {});
+  if (NIDS.socket && NIDS.connected && NIDS.socket.readyState === WebSocket.OPEN) {
+    NIDS.socket.send(JSON.stringify({ type: 'start_capture', interface: iface || 'auto' }));
   } else {
-    console.warn('[NIDS] Socket not connected yet; cannot start capture.');
+    console.warn('[NIDS] WebSocket not connected; cannot start capture.');
   }
 };
 
 NIDS.stopCapture = function () {
-  if (NIDS.socket && NIDS.connected) {
-    NIDS.socket.emit('stop_capture', {});
-  }
-};
-
-NIDS.requestStatus = function () {
-  if (NIDS.socket && NIDS.connected) {
-    NIDS.socket.emit('request_status', {});
+  if (NIDS.socket && NIDS.connected && NIDS.socket.readyState === WebSocket.OPEN) {
+    NIDS.socket.send(JSON.stringify({ type: 'stop_capture' }));
   }
 };
 

@@ -12,9 +12,6 @@
   <!-- Chart.js -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 
-  <!-- Flask-SocketIO client (served by Flask) -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
-
   <!-- Shared CSS -->
   <link rel="stylesheet" href="{{ url_for('static', filename='css/components.css') }}">
 
@@ -50,30 +47,27 @@
     <!-- Navigation -->
     <nav class="sb-nav">
       <div class="sb-section">MONITORING</div>
-      <a href="{{ url_for('dashboard') }}"
+      <a href="{{ url_for('index') }}"
          class="nav-item {% if active_page == 'dashboard' %}active{% endif %}">
         <span class="nav-icon">📊</span> Dashboard
         <span class="nav-badge" id="sb-alert-badge" style="display:none;">0</span>
       </a>
-      <a href="{{ url_for('alerts') }}"
+      <a href="{{ url_for('alerts_page') }}"
          class="nav-item {% if active_page == 'alerts' %}active{% endif %}">
         <span class="nav-icon">🚨</span> Alerts
       </a>
-      <a href="{{ url_for('historical') }}"
+      <a href="{{ url_for('logs_page') }}"
          class="nav-item {% if active_page == 'historical' %}active{% endif %}">
         <span class="nav-icon">📈</span> Analytics
       </a>
-      <a href="{{ url_for('reports') }}"
+      <a href="{{ url_for('analysis_page') }}"
          class="nav-item {% if active_page == 'reports' %}active{% endif %}">
         <span class="nav-icon">📄</span> Reports
       </a>
 
       <div class="sb-section" style="margin-top:12px;">SYSTEM</div>
-      <a href="{{ url_for('profile') }}"
-         class="nav-item {% if active_page == 'profile' %}active{% endif %}">
-        <span class="nav-icon">👤</span> Profile
-      </a>
-      <a href="{{ url_for('settings') }}"
+      <!-- Profile page (disabled) -->
+      <a href="{{ url_for('settings_page') }}"
          class="nav-item {% if active_page == 'settings' %}active{% endif %}">
         <span class="nav-icon">⚙️</span> Settings
       </a>
@@ -99,7 +93,8 @@
           {% endif %}
         </div>
       </div>
-      <a href="{{ url_for('logout_page') }}" class="sb-logout" title="Sign out" onclick="return confirm('Are you sure you want to logout?');">⏻</a>
+      <!-- Logout (not implemented in frontend-only mode) -->
+      <!-- <a href="#" class="sb-logout" title="Sign out" onclick="return confirm('Are you sure you want to logout?');">⏻</a> -->
     </div>
 
   </aside><!-- /sidebar -->

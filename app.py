@@ -7,7 +7,7 @@ import threading
 import csv
 import os
 from datetime import datetime
-from flask import Flask, render_template, jsonify, request, send_file
+from flask import Flask, render_template, jsonify, request, send_file, redirect, url_for
 from flask_socketio import SocketIO, emit
 
 # ── Import your backend modules ────────────────────────────────────────────
@@ -45,8 +45,12 @@ alert_logger.push_callback = push_alert_to_dashboard
 
 @app.route('/')
 def index():
+    return redirect('/dashboard')
+
+@app.route('/dashboard')
+def dashboard():
     """Main dashboard page."""
-    return render_template('index.html')
+    return render_template('dashboard.html', model_loaded=is_ready(), model_accuracy='98.4', interfaces=[])
 
 @app.route('/alerts')
 def alerts_page():
@@ -232,8 +236,8 @@ if __name__ == '__main__':
 
     # Start packet sniffer in background thread
     # Change 'eth0' to your actual Kali interface name
-    # Run: ip a    to find your interface name
-    INTERFACE = 'eth0'
+    # Run: ipconfig to find Windows iface (e.g. Wi-Fi)
+    INTERFACE = 'Wi-Fi'
     _start_sniffer(interface=INTERFACE)
 
     print(f"[APP] ML model ready : {is_ready()}")

@@ -38,18 +38,19 @@ document.addEventListener('DOMContentLoaded', function () {
   NIDS.initSidebar();
   NIDS.startClock('topbar-clock');
 
-  /* Wire SocketIO events (when connected to Flask backend) */
+  /* Wire WebSocket events (when connected to FastAPI backend) */
   NIDS.on('nids:alert',          handleAlert);
   NIDS.on('nids:normal',         handleNormal);
-  NIDS.on('nids:status',         updateHealth);
+  NIDS.on('nids:stats',          updateHealth);
+  NIDS.on('nids:status',         updateHealth);  /* fallback for old event name */
   NIDS.on('nids:capture_started',onCaptureStarted);
   NIDS.on('nids:capture_stopped',onCaptureStopped);
 
   var captureBtn = document.getElementById('capture-btn');
   if (captureBtn) captureBtn.addEventListener('click', toggleCapture);
 
-  /* Health update every 4 s via socket; also poll /api/status as fallback */
-  setInterval(function () { NIDS.requestStatus(); }, 4000);
+  /* Health update every 4 s via WebSocket; also poll /api/stats as fallback */
+  setInterval(function () { NIDS.requestStats(); }, 4000);
 });
 
 /* ── Capture toggle ──────────────────────────────────────────────── */

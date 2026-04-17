@@ -355,6 +355,8 @@
       <select class="form-input no-icon" id="default-iface"
               style="width:200px;padding:9px 12px;">
         <option value="auto" {% if settings and settings.interface == 'auto' %}selected{% endif %}>Auto-detect</option>
+        <option value="Wi-Fi" {% if settings and settings.interface == 'Wi-Fi' %}selected{% endif %}>Wi-Fi</option>
+        <option value="Ethernet" {% if settings and settings.interface == 'Ethernet' %}selected{% endif %}>Ethernet</option>
         <option value="eth0" {% if settings and settings.interface == 'eth0' %}selected{% endif %}>eth0</option>
         <option value="wlan0" {% if settings and settings.interface == 'wlan0' %}selected{% endif %}>wlan0</option>
       </select>
